@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Natural Capital Carbon Sensitivity — Tower Peak Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --green: #1a6b4a;
+    --green-light: #e8f5ee;
+    --green-mid: #2d9c6e;
+    --amber: #b45309;
+    --amber-light: #fef3c7;
+    --amber-mid: #d97706;
+    --slate: #1e293b;
+    --slate-mid: #475569;
+    --slate-light: #94a3b8;
+    --bg: #f8f7f4;
+    --card: #ffffff;
+    --border: #e2e0db;
+    --text: #1e293b;
+    --text-muted: #64748b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--slate);
+    color: white;
+    padding: 2.5rem 2rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 40%;
+    width: 160px; height: 160px;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+
+  .header-inner { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .header-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+
+  .header-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    max-width: 560px;
+    font-weight: 300;
+  }
+
+  main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+
+  .slider-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .slider-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  input[type=range] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    background: linear-gradient(to right, var(--green-mid) var(--pct, 25%), #e2e0db var(--pct, 25%));
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    background: var(--green);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .slider-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    color: var(--slate);
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--slate-light);
+    margin-top: 0.5rem;
+    padding: 0 2px;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .panel-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .panel-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-weight: 300;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+
+  .metric {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+    font-weight: 400;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+    font-family: 'DM Serif Display', serif;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .metric-value.green { color: var(--green); }
+  .metric-value.amber { color: var(--amber); }
+
+  .chart-wrap { position: relative; height: 160px; margin-bottom: 0.75rem; }
+
+  .source-note {
+    font-size: 11px;
+    color: var(--slate-light);
+    line-height: 1.5;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .hedge-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hedge-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-bottom: 0.75rem;
+  }
+
+  .hedge-body {
+    font-size: 14px;
+    color: var(--slate-mid);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .hedge-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 20px;
+  }
+
+  .pill-green { background: var(--green-light); color: var(--green); }
+  .pill-amber { background: var(--amber-light); color: var(--amber); }
+
+  .ai-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .ai-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+
+  .generate-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--slate);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    letter-spacing: 0.01em;
+  }
+
+  .generate-btn:hover { background: #334155; }
+  .generate-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  .ai-output {
+    display: none;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .ai-output-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .ai-text {
+    font-size: 14px;
+    color: var(--slate-mid);
+    line-height: 1.8;
+    font-weight: 300;
+  }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s infinite;
+  }
+
+  @keyframes dots {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+  .methodology {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .method-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .method-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .method-item { }
+
+  .method-item-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .method-item-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 12px;
+    color: var(--slate-light);
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 640px) {
+    .panels { grid-template-columns: 1fr; }
+    .method-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.5rem; }
+    main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <span class="header-tag">Private Markets Analysis</span>
+    <h1>Natural Capital Carbon<br>Sensitivity Model</h1>
+    <p class="header-sub">How rising EU ETS carbon prices affect forestry and agriculture investments in a Tower Peak-style diversified natural capital portfolio</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="slider-section">
+    <p class="slider-label">EU ETS Carbon Price Scenario</p>
+    <div class="slider-row">
+      <input type="range" min="0" max="300" value="75" step="1" id="carbonSlider" oninput="updateAll(this.value)">
+      <div class="slider-value" id="carbonVal">€75/t</div>
+    </div>
+    <div class="slider-ticks">
+      <span>€0 — no policy</span>
+      <span>€75 — today (Apr 2026)</span>
+      <span>€100 — 2027 forecast</span>
+      <span>€300 — 2035 scenario</span>
+    </div>
+  </div>
+
+  <div class="panels">
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Forestry investments</div>
+          <div class="panel-subtitle">Natural capital — carbon revenue</div>
+        </div>
+        <span class="badge badge-green">Benefits</span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Carbon credit price</div>
+          <div class="metric-value green" id="creditPrice">$6/t</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Revenue per ha/yr</div>
+          <div class="metric-value green" id="forestRev">$30</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="forestChart" role="img" aria-label="Forestry carbon revenue per hectare per year rising with EU ETS carbon price">Forestry carbon revenue increases as carbon price rises.</canvas>
+      </div>
+      <div class="source-note">
+        5 tCO₂/ha/yr sequestration (Woodland Carbon Code; Banc Woodland case study). Credit price scales with EU ETS trajectory. Projected range: $6/t today → $75–125/t by 2035 (EY Net Zero Centre).
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Agriculture investments</div>
+          <div class="panel-subtitle">Input cost exposure — fertiliser</div>
+        </div>
+        <span class="badge badge-amber">Exposed</span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">EBITDA margin</div>
+          <div class="metric-value amber" id="agriMargin">8.04%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Margin compression</div>
+          <div class="metric-value amber" id="agriComp">−0.00pp</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="agriChart" role="img" aria-label="Agriculture EBITDA margin declining as EU ETS carbon price raises fertiliser input costs">Agriculture EBITDA margin declines as carbon pricing raises fertiliser costs.</canvas>
+      </div>
+      <div class="source-note">
+        Fertiliser = 10% of farm operating costs (European Commission). 4% fertiliser cost rise per €80/t carbon (Bruegel, Feb 2026). Baseline EBITDA: 8.04% (Damodaran, Jan 2026).
+      </div>
+    </div>
+
+  </div>
+
+  <div class="hedge-section">
+    <div class="hedge-title">Portfolio hedge dynamic</div>
+    <div class="hedge-body" id="hedgeBody">
+      At €75/t, forestry generates $30/ha/yr in verified carbon revenue while agriculture faces 0.38pp of EBITDA margin compression from rising fertiliser costs. Tower Peak's combined natural capital strategy — spanning both forestry and agriculture — creates a partial internal hedge: as carbon prices rise, forestry revenue appreciation offsets some of the input cost pressure on agriculture holdings.
+    </div>
+    <div class="hedge-pills" id="hedgePills">
+      <span class="pill pill-green">Forestry: +$30/ha carbon revenue</span>
+      <span class="pill pill-amber">Agriculture: −0.38pp EBITDA margin</span>
+    </div>
+  </div>
+
+  <div class="ai-section">
+    <div class="ai-title">AI-generated portfolio insight</div>
+    <button class="generate-btn" id="generateBtn" onclick="runAI()">Generate investment insight for this scenario</button>
+    <div class="ai-output" id="aiOutput">
+      <div class="ai-output-label">Private markets analysis</div>
+      <div class="ai-text" id="aiText"></div>
+    </div>
+  </div>
+
+  <div class="methodology">
+    <div class="method-title">Methodology &amp; sources</div>
+    <div class="method-grid">
+      <div class="method-item">
+        <div class="method-item-title">EU ETS carbon price</div>
+        <div class="method-item-body">Current price €75/t as of April 2026 (S&P Global; Trading Economics). Forecasts: €85–100/t by 2027 (multiple institutional forecasters). Long-run scenario to €300/t based on EY/Enerdata modelling.</div>
+      </div>
+      <div class="method-item">
+        <div class="method-item-title">Forestry sequestration</div>
+        <div class="method-item-body">5 tCO₂/ha/yr claimable sequestration based on Banc Woodland Woodland Carbon Code project (357 acres, 22,020 tCO₂e over 100 years). Conservative global estimate; Tower Peak's tropical exposure (Latin America) likely implies upside (MIT Climate Portal: up to 11 tCO₂/ha/yr gross).</div>
+      </div>
+      <div class="method-item">
+        <div class="method-item-title">Carbon credit pricing</div>
+        <div class="method-item-body">Voluntary market average ~$6/t (Ecosystem Marketplace, 2025). Long-run projection $75–125/t by 2035 (EY Net Zero Centre). Model scales linearly between these anchors.</div>
+      </div>
+      <div class="method-item">
+        <div class="method-item-title">Agriculture sensitivity</div>
+        <div class="method-item-body">Fertiliser = 10% of farm operating costs (European Commission agri-food portal). 4% fertiliser cost rise per €80/t carbon (Bruegel, February 2026 — EU CBAM fertiliser analysis). Baseline EBITDA margin 8.04% (Damodaran, January 2026, Farming/Agriculture sector).</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Built for illustrative purposes. Data reflects publicly available sources as of April 2026. Portfolio sensitivities are indicative; actual impact depends on specific holdings, geographies, and contract structures.
+</footer>
+
+<script>
+
+
+const BASE_EBITDA = 8.04;
+const FERT_SHARE = 0.10;
+const FERT_RISE_PER_80 = 0.04;
+const SEQ_YIELD = 5;
+const CREDIT_TODAY = 6;
+const CREDIT_2035 = 100;
+const ETS_2035 = 200;
+
+function creditPrice(c) {
+  if (c <= 0) return CREDIT_TODAY;
+  return CREDIT_TODAY + (CREDIT_2035 - CREDIT_TODAY) * Math.min(c / ETS_2035, 1);
+}
+
+function forestRev(c) { return creditPrice(c) * SEQ_YIELD; }
+
+function agriComp(c) {
+  return (c / 80) * FERT_RISE_PER_80 * FERT_SHARE * 100;
+}
+
+function agriMargin(c) { return Math.max(0, BASE_EBITDA - agriComp(c)); }
+
+let fChart, aChart;
+
+function buildData() {
+  const labels = [], fd = [], ad = [];
+  for (let c = 0; c <= 300; c += 15) {
+    labels.push(c % 75 === 0 ? '€' + c : '');
+    fd.push(parseFloat(forestRev(c).toFixed(2)));
+    ad.push(parseFloat(agriMargin(c).toFixed(3)));
+  }
+  return { labels, fd, ad };
+}
+
+function updateAll(val) {
+  const c = parseInt(val);
+  const pct = (c / 300 * 100).toFixed(1);
+  document.getElementById('carbonSlider').style.setProperty('--pct', pct + '%');
+  document.getElementById('carbonVal').textContent = '€' + c + '/t';
+
+  const cp = creditPrice(c);
+  const rev = forestRev(c);
+  const comp = agriComp(c);
+  const margin = agriMargin(c);
+
+  document.getElementById('creditPrice').textContent = '$' + cp.toFixed(0) + '/t';
+  document.getElementById('forestRev').textContent = '$' + rev.toFixed(0) + '/ha';
+  document.getElementById('agriMargin').textContent = margin.toFixed(2) + '%';
+  document.getElementById('agriComp').textContent = '−' + comp.toFixed(2) + 'pp';
+
+  document.getElementById('hedgeBody').textContent =
+    `At €${c}/t, forestry generates $${rev.toFixed(0)}/ha/yr in verified carbon revenue while agriculture faces ${comp.toFixed(2)}pp of EBITDA margin compression from rising fertiliser costs. Tower Peak's combined natural capital strategy — spanning both forestry and agriculture — creates a partial internal hedge: as carbon prices rise, forestry revenue appreciation offsets some of the input cost pressure on agriculture holdings.`;
+
+  document.getElementById('hedgePills').innerHTML =
+    `<span class="pill pill-green">Forestry: +$${rev.toFixed(0)}/ha carbon revenue</span>
+     <span class="pill pill-amber">Agriculture: −${comp.toFixed(2)}pp EBITDA margin</span>`;
+
+  const { labels, fd, ad } = buildData();
+
+  if (!fChart) {
+    fChart = new Chart(document.getElementById('forestChart'), {
+      type: 'line',
+      data: { labels, datasets: [{ data: fd, borderColor: '#2d9c6e', backgroundColor: 'rgba(45,156,110,0.08)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => '€' + (i[0].dataIndex * 15) + '/t', label: i => '$' + i.parsed.y.toFixed(0) + '/ha/yr' } } }, scales: { x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '$' + v }, grid: { color: 'rgba(0,0,0,0.04)' }, min: 0 } } }
+    });
+  }
+
+  if (!aChart) {
+    aChart = new Chart(document.getElementById('agriChart'), {
+      type: 'line',
+      data: { labels, datasets: [{ data: ad, borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.08)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => '€' + (i[0].dataIndex * 15) + '/t', label: i => i.parsed.y.toFixed(2) + '% EBITDA' } } }, scales: { x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v.toFixed(1) + '%' }, grid: { color: 'rgba(0,0,0,0.04)' }, min: 0, max: 10 } } }
+    });
+  }
+}
+
+async function runAI() {
+  const c = parseInt(document.getElementById('carbonSlider').value);
+  const cp = creditPrice(c).toFixed(0);
+  const rev = forestRev(c).toFixed(0);
+  const comp = agriComp(c).toFixed(2);
+  const margin = agriMargin(c).toFixed(2);
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating insight...';
+
+  const out = document.getElementById('aiOutput');
+  const txt = document.getElementById('aiText');
+  out.style.display = 'block';
+  txt.innerHTML = '<span class="loading-dots">Analysing scenario</span>';
+
+  const prompt = `You are a private markets sustainability analyst writing a concise investment insight for Tower Peak Partners — a global private markets firm with investments across industrial transition private equity, infrastructure, natural capital (forestry and agriculture across 35+ jurisdictions), and IP. The Head of Sustainability is evaluating how rising carbon prices affect their diversified natural capital portfolio.
+
+Scenario: EU ETS carbon price is €${c}/tonne. Forestry carbon credits are worth $${cp}/tonne, generating $${rev}/ha/yr in carbon revenue (based on 5 tCO2/ha/yr sequestration per Woodland Carbon Code methodology). Agriculture EBITDA margins have compressed to ${margin}% from a 8.04% baseline, representing ${comp} percentage points of compression from rising fertiliser input costs (fertiliser = 10% of operating costs; 4% cost rise per €80/t carbon per Bruegel 2026).
+
+Write exactly 3 paragraphs. No headers. No bullet points. No markdown:
+Paragraph 1: What this carbon price scenario means for Tower Peak's forestry investments and the natural hedge dynamic between forestry revenue gains and agriculture cost pressures.
+Paragraph 2: At what carbon price level Tower Peak should consider rebalancing toward forestry vs agriculture within their natural capital strategy, and what policy signals to watch.
+Paragraph 3: One specific actionable portfolio management recommendation for Tower Peak's Head of Sustainability at this carbon price level.
+
+Direct analytical tone. No hedging language. Max 230 words total.`;
+
+  try {
+    const res = await fetch(
+      "https://gemini-proxy.ay210106.workers.dev/",
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      }
+    );
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+    txt.textContent = text;
+  } catch(e) {
+    txt.textContent = 'Unable to generate insight. Please check your API key and try again.';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Regenerate insight';
+}
+
+updateAll(75);
+</script>
+</body>
+</html>
